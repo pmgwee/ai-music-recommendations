@@ -141,6 +141,16 @@ function pickThumbnail(item: any): string | null {
  * preserved in `sources.youtube`; the old `channel` field is renamed `artist`
  * (engine-wide). One mapper, applied at every track-producing site, keeps the
  * source-neutral invariant load-bearing for the rest of the engine.
+ *
+ * ISRC (SP-3): YouTube Music's InnerTube response does NOT surface ISRC as a
+ * typed field on MusicResponsiveListItem (verified against youtubei.js 17.2.0
+ * — no `isrc` anywhere in the dist). Rather than parse subtitle strings or
+ * infer from `feedbackParams`/`menu` (region-dependent and easy to get wrong),
+ * we read a single explicitly-named `isrc` key off the raw item if YouTube
+ * happens to carry one — non-guessy. When it doesn't (the common case today),
+ * `isrc` stays undefined and SP-3's resolver falls back to a title+artist
+ * search. ISRCs coming IN from Spotify are the load-bearing case, not ISRCs
+ * coming OUT of YouTube.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toTrack(item: any): MusicTrack | null {
@@ -156,6 +166,11 @@ function toTrack(item: any): MusicTrack | null {
   const artists: string | undefined = item?.artists?.map((a: any) => a?.name).filter(Boolean).join(", ");
   const channel = artists || item?.author?.name || subtitle.split("•")[0]?.trim() || "";
 
+  // ISRC: read a bare `isrc` string field only. No substring parsing, no
+  // `feedbackParams`/`menu` inference — see the function doc.
+  const isrc: string | undefined =
+    typeof item?.isrc === "string" && item.isrc.trim() ? item.isrc.trim() : undefined;
+
   return {
     trackId: `yt:${id}`,
     sources: { youtube: id },
@@ -164,6 +179,7 @@ function toTrack(item: any): MusicTrack | null {
     artist: channel.replace(/ - Topic$/, ""),
     thumbnail: pickThumbnail(item),
     source: "recommended",
+    ...(isrc ? { isrc } : {}),
   };
 }
 

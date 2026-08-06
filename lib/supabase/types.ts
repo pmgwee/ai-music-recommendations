@@ -1,6 +1,7 @@
 // Hand-written Database type covering the public schema created by
-// supabase/migrations/0001_music_source_neutral.sql (music) and
-// supabase/migrations/0002_user_llm_keys.sql (BYOK keys). Mirrors what
+// supabase/migrations/0001_music_source_neutral.sql (music),
+// supabase/migrations/0002_user_llm_keys.sql (BYOK keys), and
+// supabase/migrations/0003_music_imports.sql (playlist ingestion). Mirrors what
 // `supabase gen typescript` would produce (no CLI in this repo's toolchain yet).
 // Keep in sync with those migrations when columns change.
 
@@ -185,6 +186,41 @@ export type Database = {
           track_id?: string;
           provider?: string;
           source_id?: string;
+        };
+        Relationships: [];
+      };
+      // ---------------------------------------------------------------- music_imports
+      // SP-3: per-user playlist-ingestion provenance. Distinct from music_plays
+      // (which the import ALSO writes as a cold-start prior) so a source can be
+      // audited/cleared. PK (user_id, provider, source_playlist_id, track_id)
+      // makes re-importing the same playlist idempotent.
+      music_imports: {
+        Row: {
+          user_id: string;
+          provider: string;
+          source_playlist_id: string;
+          source_playlist_name: string;
+          track_id: string;
+          isrc: string | null;
+          imported_at: string;
+        };
+        Insert: {
+          user_id: string;
+          provider: string;
+          source_playlist_id: string;
+          source_playlist_name?: string;
+          track_id: string;
+          isrc?: string | null;
+          imported_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          provider?: string;
+          source_playlist_id?: string;
+          source_playlist_name?: string;
+          track_id?: string;
+          isrc?: string | null;
+          imported_at?: string;
         };
         Relationships: [];
       };
