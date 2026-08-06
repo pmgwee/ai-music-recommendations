@@ -243,7 +243,10 @@ export async function buildShelf(args: BuildShelfArgs): Promise<MusicTrack[]> {
         title: history[0].title,
         artist: history[0].artist,
         thumbnail: history[0].thumbnail,
-        sources: {},
+        // The opener auto-plays first; it must resolve a YouTube id. Derive it
+        // from the `yt:`-prefixed trackId — the same convention `sources.ts`
+        // uses when seeding candidates from radio/related queues.
+        sources: { youtube: history[0].trackId.replace(/^yt:/, "") },
         source: "local" as const,
       }
     : null;

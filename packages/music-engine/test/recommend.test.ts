@@ -62,6 +62,9 @@ describe("buildShelf", () => {
     });
     expect(slate.length).toBeGreaterThan(0);
     expect(slate[0]!.trackId.startsWith("yt:")).toBe(true);
+    // Opener auto-plays first — it must carry a resolvable YouTube id, else the
+    // first track of the shelf is unplayable (the regression fixed in this patch).
+    expect(slate[0]?.sources.youtube).toBeTruthy();
   });
 });
 
