@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@music-ai/engine": ["./packages/music-engine/src"]
     }
   },
   "include": [
