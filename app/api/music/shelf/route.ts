@@ -6,14 +6,15 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseTrackStore } from "@/lib/providers/track-store-supabase";
 import { requireUser } from "@/lib/auth/require-user";
-import { createGlmLlm } from "@/lib/providers/llm-glm";
+import { createByokLlm, NullLlm } from "@/lib/providers/llm-byok";
 import { toNarrowTagStore } from "@/lib/providers/tag-store-adapter";
 import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * Discovery shelf, wired end-to-end through the four injected seams: broad
  * `TrackStore` (cookie-bound), `CandidateSource` (anonymous InnerTube),
- * `LlmProvider` (GLM), and the narrow `TagStore` adapter (LLM tag cache).
+ * `LlmProvider` (the signed-in user's BYOK key — server GLM is no longer the
+ * default), and the narrow `TagStore` adapter (LLM tag cache).
  *
  * The `TrackStore` is bound to the cookie-bound server client + the signed-in
  * user — `auth.uid()` is populated, so the `log_music_*` security-invoker RPCs
@@ -46,7 +47,12 @@ export async function GET() {
     const likes = await trackStore.loadLikes(userId);
 
     const candidateSource = createYoutubeCandidateSource();
-    const llm = createGlmLlm();
+    // BYOK (SP-2): the LLM is the signed-in user's own key, not the server
+    // GLM. createByokLlm returns null when the user has no key configured —
+    // pass NullLlm so the engine path is unchanged (tagBatch / parseVibe
+    // check isConfigured() and degrade to co-occurrence cleanly). Per spec §D4
+    // the server GLM key is NOT a fallback (BYOK is the point).
+    const llm = (await createByokLlm(supabase, userId)) ?? NullLlm;
 
     // Bridge the broad TrackStore → the narrow TagStore `buildShelf` consumes.
     const tagStore = toNarrowTagStore(trackStore);

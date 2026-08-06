@@ -47,6 +47,23 @@ type ChatOpts = Parameters<LlmProvider["chat"]>[0];
 type ChatMessage = ChatOpts["messages"][number];
 
 // ---------------------------------------------------------------------------
+// NullLlm — a no-op LlmProvider used as the degrade path when the user has no
+// BYOK key. `isConfigured()` returns false so the engine's `tagBatch` and
+// `parseVibe` guards skip the LLM step entirely (co-occurrence / null intent),
+// and `chat()` is never reached in practice — but returns a defensive "[]"
+// (valid JSON, empty parse) in case a caller forgets the guard. This keeps the
+// engine's call sites unchanged: they always receive a real `LlmProvider`.
+// ---------------------------------------------------------------------------
+export const NullLlm: LlmProvider = {
+  isConfigured() {
+    return false;
+  },
+  async chat() {
+    return "[]";
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Default endpoints + models (D1). Env overrides per provider let ops swap a
 // model without a redeploy.
 // ---------------------------------------------------------------------------

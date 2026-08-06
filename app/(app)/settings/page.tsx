@@ -1,16 +1,20 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { LlmKeyForm } from "@/components/byok/llm-key-form";
 
 /**
- * SP-1 settings shell — read-only. The `(app)` layout already redirects
- * unsigned visitors to `/login`, and the middleware gates `/settings` too, so
- * `getUser()` here is defense-in-depth and gives us the email for the profile
- * section. Sign-out is the shared `SignOutButton` (same component the shell
- * header uses), so the logic is reused, not duplicated.
+ * Settings page — profile + BYOK LLM key management (SP-2).
  *
- * The "LLM API keys" section is a disabled placeholder — BYOK key management
- * (OpenAI / Anthropic / Gemini / GLM) lands in SP-2. Read-only for now: no
- * inputs, no mutation.
+ * The `(app)` layout already redirects unsigned visitors to `/login`, and the
+ * middleware gates `/settings` too, so `getUser()` here is defense-in-depth
+ * and gives us the email for the profile section. Sign-out is the shared
+ * `SignOutButton` (same component the shell header uses), so the logic is
+ * reused, not duplicated.
+ *
+ * The "LLM API keys" section is the BYOK form (`LlmKeyForm`) — a client
+ * component that POSTs/DELETEs to `/api/llm-key` and renders the configured-
+ * providers status. The user's plaintext key never leaves that form except as
+ * the POST body (over HTTPS); this server component never sees it.
  */
 export default async function SettingsPage() {
   const supabase = await createSupabaseServerClient();
@@ -51,32 +55,22 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      {/* LLM API keys — disabled placeholder (SP-2) */}
-      <section className="rounded-lg border border-black/10 p-4 opacity-70 dark:border-white/15">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide">
+      {/* LLM API keys — BYOK (SP-2) */}
+      <section className="rounded-lg border border-black/10 p-4 dark:border-white/15">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">
             LLM API keys
           </h2>
-          <span className="rounded-full border border-black/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide dark:border-white/15">
-            Coming in SP-2
+          <span className="rounded-full border border-black/10 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide opacity-70 dark:border-white/15">
+            BYOK
           </span>
         </div>
-        <p className="text-sm">
-          Bring your own OpenAI, Anthropic, Gemini, or GLM key (BYOK). Your key
-          powers the cold-start tag prior and the vibe intent surface, and stays
-          under your control. Key entry and per-user storage land in SP-2.
+        <p className="mb-4 text-sm">
+          Bring your own OpenAI, Anthropic, Gemini, or GLM key. Your key powers
+          the cold-start tag prior and the vibe intent surface, and stays under
+          your control — encrypted at rest, never sent back to the browser.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {["OpenAI", "Anthropic", "Gemini", "GLM"].map((provider) => (
-            <span
-              key={provider}
-              className="rounded-md border border-black/10 px-2.5 py-1 text-xs dark:border-white/15"
-              aria-label={`${provider} key — disabled`}
-            >
-              {provider} key · disabled
-            </span>
-          ))}
-        </div>
+        <LlmKeyForm />
       </section>
     </div>
   );
