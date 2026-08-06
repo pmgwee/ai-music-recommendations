@@ -8,6 +8,7 @@ import { createSupabaseTrackStore } from "@/lib/providers/track-store-supabase";
 import { requireUser } from "@/lib/auth/require-user";
 import { createGlmLlm } from "@/lib/providers/llm-glm";
 import { toNarrowTagStore } from "@/lib/providers/tag-store-adapter";
+import { rateLimit } from "@/lib/rate-limit";
 
 /**
  * Discovery shelf, wired end-to-end through the four injected seams: broad
@@ -24,6 +25,20 @@ export async function GET() {
   const auth = await requireUser(supabase);
   if (!auth.ok) return auth.response;
   const userId = auth.userId;
+
+  // Per-user cap: 8 shelf builds/min is generous for a human, stops a loop.
+  // The InnerTube candidate source is the operator's scrape-costly shared
+  // resource — a tight client loop would burn through that budget fast.
+  const rl = rateLimit({ key: `shelf:${userId}`, limit: 8, windowMs: 60_000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "rate_limited" },
+      {
+        status: 429,
+        headers: { "retry-after": String(Math.ceil(rl.retryAfterMs / 1000)) },
+      },
+    );
+  }
 
   try {
     const trackStore = createSupabaseTrackStore(supabase);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseTrackStore } from "@/lib/providers/track-store-supabase";
 import { requireUser } from "@/lib/auth/require-user";
+import { rateLimit, getClientIP } from "@/lib/rate-limit";
 
 /**
  * Record a behavioural signal (skip | complete) through the broad TrackStore
@@ -10,8 +11,23 @@ import { requireUser } from "@/lib/auth/require-user";
  * route. Manual Skip/Complete buttons on the proof page also POST here for UAT
  * probing. Bound to the cookie-bound server client + the signed-in user —
  * returns 401 JSON with no session.
+ *
+ * Coarse per-IP limit (60/min) fires BEFORE the auth check so a tight client
+ * loop is throttled before it spends any Supabase session-lookup budget.
  */
 export async function POST(req: Request) {
+  const ip = getClientIP(req);
+  const ipRL = rateLimit({ key: `ip:${ip}:signals`, limit: 60, windowMs: 60_000 });
+  if (!ipRL.ok) {
+    return NextResponse.json(
+      { error: "rate_limited" },
+      {
+        status: 429,
+        headers: { "retry-after": String(Math.ceil(ipRL.retryAfterMs / 1000)) },
+      },
+    );
+  }
+
   const supabase = await createSupabaseServerClient();
   const auth = await requireUser(supabase);
   if (!auth.ok) return auth.response;
