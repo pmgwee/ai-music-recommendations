@@ -3,33 +3,38 @@ import {
   buildShelf,
   createYoutubeCandidateSource,
 } from "@music-ai/engine";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseTrackStore } from "@/lib/providers/track-store-supabase";
+import { requireUser } from "@/lib/auth/require-user";
 import { createGlmLlm } from "@/lib/providers/llm-glm";
 import { toNarrowTagStore } from "@/lib/providers/tag-store-adapter";
-import { resolveSp0DevContext } from "@/lib/music/sp0-dev";
 
 /**
- * SP-0 SC3 proof — the discovery shelf, wired end-to-end through the four
- * injected seams: broad `TrackStore` (admin-bound), `CandidateSource`
- * (anonymous InnerTube), `LlmProvider` (GLM), and the narrow `TagStore` adapter
- * (LLM tag cache). See `lib/music/sp0-dev.ts` for the SP-0 dev-mode concession.
+ * Discovery shelf, wired end-to-end through the four injected seams: broad
+ * `TrackStore` (cookie-bound), `CandidateSource` (anonymous InnerTube),
+ * `LlmProvider` (GLM), and the narrow `TagStore` adapter (LLM tag cache).
  *
- * With empty history + no likes, `buildShelf` returns `[]` — the UAT seeds a
- * play first, then this route returns a real neighbourhood slate.
+ * The `TrackStore` is bound to the cookie-bound server client + the signed-in
+ * user — `auth.uid()` is populated, so the `log_music_*` security-invoker RPCs
+ * resolve to the caller's row (the SP-0 write-path limitation is resolved by
+ * this binding). With no session the route returns 401 JSON.
  */
 export async function GET() {
-  const ctx = resolveSp0DevContext();
-  if (ctx instanceof NextResponse) return ctx;
-  const { devUserId, trackStore: broad } = ctx;
+  const supabase = await createSupabaseServerClient();
+  const auth = await requireUser(supabase);
+  if (!auth.ok) return auth.response;
+  const userId = auth.userId;
 
   try {
-    const history = await broad.loadHistory(devUserId);
-    const likes = await broad.loadLikes(devUserId);
+    const trackStore = createSupabaseTrackStore(supabase);
+    const history = await trackStore.loadHistory(userId);
+    const likes = await trackStore.loadLikes(userId);
 
     const candidateSource = createYoutubeCandidateSource();
     const llm = createGlmLlm();
 
     // Bridge the broad TrackStore → the narrow TagStore `buildShelf` consumes.
-    const tagStore = toNarrowTagStore(broad);
+    const tagStore = toNarrowTagStore(trackStore);
 
     const slate = await buildShelf({
       history,

@@ -84,8 +84,8 @@ pnpm check:sp0          # SC3 live integration check (see below)
 pnpm exec tsx --env-file=.env scripts/sp0-integration-check.ts
 ```
 
-Ensures a dev auth user exists (`sp0-dev@local`), seeds one play via a direct
-admin insert (the auth-coupled `log_music_play` RPC is SP-1's path), then
+Ensures a dev auth user exists (`music-check@local`), seeds one play via a direct
+admin insert (the auth-coupled `log_music_play` RPC is the route's path), then
 builds the discovery shelf through the four real seams against the live DB +
 live InnerTube. Prints the slate count + sample titles; exits `0` if the slate
 is non-empty, `1` otherwise. Runs with no `ZAI_API_KEY` — the LLM tag prior
@@ -99,9 +99,8 @@ Copy `.env.example` to `.env` and fill in:
 | ---------------------------------- | ---------------------- | ----- |
 | `NEXT_PUBLIC_SUPABASE_URL`         | all paths              | Supabase project URL. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | app routes          | Supabase anon/publishable key. |
-| `SUPABASE_SERVICE_ROLE_KEY`        | integration check, SP-0 proof routes | Service role. SP-0 dev-mode binds the `TrackStore` to the admin client because auth/cookie/RLS is SP-1's scope. |
-| `MUSIC_DEV_USER_ID`                | SP-0 proof app routes  | A UUID in `auth.users`. (The integration check creates its own dev user; this var is what the proof app routes read.) |
-| `ZAI_API_KEY`                      | LLM tag prior + vibe   | Optional in SP-0. When unset, `isConfigured()` returns false and the tag prior is skipped (co-occurrence only). |
+| `SUPABASE_SERVICE_ROLE_KEY`        | integration check, catalog tag-cache writes | Service role. The music routes use the cookie-bound client (RLS); the admin client survives only for `setTags` (catalog-global `music_track_tags`) and the dev integration check. |
+| `ZAI_API_KEY`                      | LLM tag prior + vibe   | Optional. When unset, `isConfigured()` returns false and the tag prior is skipped (co-occurrence only). |
 | `ZAI_BASE_URL`                     | LLM (optional)         | Defaults to the Z.ai coding endpoint. |
 | `GLM_MODEL`                        | LLM (optional)         | Defaults to `glm-5.2` (1M context). |
 

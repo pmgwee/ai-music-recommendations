@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
-import { resolveSp0DevContext } from "@/lib/music/sp0-dev";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseTrackStore } from "@/lib/providers/track-store-supabase";
+import { requireUser } from "@/lib/auth/require-user";
 
 /**
- * SP-0 SC3 proof — record a behavioural signal (skip | complete) through the
- * broad TrackStore seam. The player emits skip (abandoned inside the first
- * 30s) and complete (natural ENDED) via its `onSignal` prop; the provider wires
- * that to this route. Manual Skip/Complete buttons on the proof page also POST
- * here for UAT probing. See `lib/music/sp0-dev.ts` for the SP-0 dev-mode
- * concession.
+ * Record a behavioural signal (skip | complete) through the broad TrackStore
+ * seam. The player emits skip (abandoned inside the first 30s) and complete
+ * (natural ENDED) via its `onSignal` prop; the provider wires that to this
+ * route. Manual Skip/Complete buttons on the proof page also POST here for UAT
+ * probing. Bound to the cookie-bound server client + the signed-in user —
+ * returns 401 JSON with no session.
  */
 export async function POST(req: Request) {
-  const ctx = resolveSp0DevContext();
-  if (ctx instanceof NextResponse) return ctx;
-  const { devUserId, trackStore } = ctx;
+  const supabase = await createSupabaseServerClient();
+  const auth = await requireUser(supabase);
+  if (!auth.ok) return auth.response;
 
   let body: { trackId?: string; signal?: "skip" | "complete" };
   try {
@@ -28,6 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "signal must be 'skip' or 'complete'" }, { status: 400 });
   }
 
-  await trackStore.recordSignal(devUserId, trackId, signal);
+  const trackStore = createSupabaseTrackStore(supabase);
+  await trackStore.recordSignal(auth.userId, trackId, signal);
   return NextResponse.json({ ok: true });
 }

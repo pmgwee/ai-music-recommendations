@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import type { MusicTrack } from "@music-ai/engine";
-import { resolveSp0DevContext } from "@/lib/music/sp0-dev";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseTrackStore } from "@/lib/providers/track-store-supabase";
+import { requireUser } from "@/lib/auth/require-user";
 
 /**
- * SP-0 SC3 proof — record a play through the broad TrackStore seam. The player
- * fires `onTrackStart` once per track on first real playback (PLAYING after
- * load); the provider wires that to this route. See `lib/music/sp0-dev.ts` for
- * the SP-0 dev-mode concession.
+ * Record a play through the broad TrackStore seam. The player fires
+ * `onTrackStart` once per track on first real playback (PLAYING after load);
+ * the provider wires that to this route. Bound to the cookie-bound server
+ * client + the signed-in user — returns 401 JSON with no session.
  */
 export async function POST(req: Request) {
-  const ctx = resolveSp0DevContext();
-  if (ctx instanceof NextResponse) return ctx;
-  const { devUserId, trackStore } = ctx;
+  const supabase = await createSupabaseServerClient();
+  const auth = await requireUser(supabase);
+  if (!auth.ok) return auth.response;
 
   let body: { track?: MusicTrack };
   try {
@@ -24,6 +26,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "missing track.trackId" }, { status: 400 });
   }
 
-  await trackStore.recordPlay(devUserId, track);
+  const trackStore = createSupabaseTrackStore(supabase);
+  await trackStore.recordPlay(auth.userId, track);
   return NextResponse.json({ ok: true });
 }

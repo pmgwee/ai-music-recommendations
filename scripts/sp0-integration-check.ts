@@ -1,9 +1,13 @@
-// SP-0 dev-only integration check — manual run, not in the test suite.
+// Dev-only integration check — manual run, not in the test suite.
 //
 // Proves the recommender runs end-to-end through the REAL four seams against
 // the live Supabase DB + live YouTube InnerTube, with no ZAI_API_KEY needed
 // (the LLM tag prior falls back to pure co-occurrence when GLM isn't
 // configured). This is the SC3 live proof that complements the in-app UAT.
+//
+// Self-contained: creates its OWN dev auth user + seeds a play via a direct
+// admin insert, then runs `buildShelf` directly (NOT via the route — the route
+// now requires a cookie session, which a standalone script doesn't carry).
 //
 // Run:
 //   pnpm exec tsx --env-file=.env scripts/sp0-integration-check.ts
@@ -20,8 +24,8 @@ import { createSupabaseTrackStore } from "../lib/providers/track-store-supabase"
 import { toNarrowTagStore } from "../lib/providers/tag-store-adapter";
 import { createGlmLlm } from "../lib/providers/llm-glm";
 
-const DEV_EMAIL = "sp0-dev@local";
-const DEV_PASSWORD = "sp0devpassword123";
+const DEV_EMAIL = "music-check@local";
+const DEV_PASSWORD = "musiccheckpassword123";
 // A stable, real videoId so InnerTube radio returns tracks.
 const SEED_TRACK = {
   track_id: "yt:dQw4w9WgXcQ",
@@ -41,7 +45,7 @@ async function main(): Promise<void> {
   const admin = createSupabaseAdminClient();
 
   // 1. Ensure a dev auth user exists. Idempotent: list users first, reuse if
-  //    "sp0-dev@local" is already there.
+  //    "music-check@local" is already there.
   let devUserId: string;
   const { data: listData, error: listError } =
     await admin.auth.admin.listUsers();
