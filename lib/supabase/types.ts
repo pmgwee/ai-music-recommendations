@@ -1,9 +1,11 @@
 // Hand-written Database type covering the public schema created by
 // supabase/migrations/0001_music_source_neutral.sql (music),
-// supabase/migrations/0002_user_llm_keys.sql (BYOK keys), and
-// supabase/migrations/0003_music_imports.sql (playlist ingestion). Mirrors what
-// `supabase gen typescript` would produce (no CLI in this repo's toolchain yet).
-// Keep in sync with those migrations when columns change.
+// supabase/migrations/0002_user_llm_keys.sql (BYOK keys),
+// supabase/migrations/0003_music_imports.sql (playlist ingestion), and
+// supabase/migrations/0004_provider_tokens.sql (encrypted OAuth tokens for the
+// playlist-import flows). Mirrors what `supabase gen typescript` would produce
+// (no CLI in this repo's toolchain yet). Keep in sync with those migrations
+// when columns change.
 
 export type Database = {
   public: {
@@ -250,6 +252,45 @@ export type Database = {
           provider?: string;
           encrypted_key?: string;
           iv?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      // ---------------------------------------------------------------- provider_tokens
+      // SP-3: encrypted OAuth tokens for the playlist-import flows (YouTube +
+      // Spotify). One row per (user, provider). `encrypted_token` + `iv` are
+      // bytea (typed client surfaces base64 strings); the plaintext token
+      // envelope ({access, refresh?, expiresAt?}) is encrypted at rest via the
+      // SAME AES-256-GCM root key as BYOK (`LLM_KEY_ENCRYPTION_KEY`).
+      provider_tokens: {
+        Row: {
+          user_id: string;
+          provider: string;
+          encrypted_token: string;
+          iv: string;
+          scope: string;
+          expires_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          provider: string;
+          encrypted_token: string;
+          iv: string;
+          scope?: string;
+          expires_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          provider?: string;
+          encrypted_token?: string;
+          iv?: string;
+          scope?: string;
+          expires_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
