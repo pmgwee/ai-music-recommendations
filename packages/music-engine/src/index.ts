@@ -7,3 +7,4 @@ export * from "./tags";
 export * from "./vibe";
 export * from "./seams";
 export * from "./sources";
+export * from "./recommend";
