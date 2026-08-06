@@ -1,7 +1,8 @@
-// Hand-written Database type covering the public music schema created by
-// supabase/migrations/0001_music_source_neutral.sql. Mirrors what
+// Hand-written Database type covering the public schema created by
+// supabase/migrations/0001_music_source_neutral.sql (music) and
+// supabase/migrations/0002_user_llm_keys.sql (BYOK keys). Mirrors what
 // `supabase gen typescript` would produce (no CLI in this repo's toolchain yet).
-// Keep in sync with that migration when columns change.
+// Keep in sync with those migrations when columns change.
 
 export type Database = {
   public: {
@@ -184,6 +185,37 @@ export type Database = {
           track_id?: string;
           provider?: string;
           source_id?: string;
+        };
+        Relationships: [];
+      };
+      // ---------------------------------------------------------------- user_llm_keys
+      // SP-2 BYOK: encrypted API keys, one ciphertext per (user, provider).
+      // `encrypted_key` + `iv` are bytea; the typed client surfaces bytea as a
+      // base64 `string`. Plaintext is never stored and never sent to the client.
+      user_llm_keys: {
+        Row: {
+          user_id: string;
+          provider: string;
+          encrypted_key: string;
+          iv: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          provider: string;
+          encrypted_key: string;
+          iv: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          provider?: string;
+          encrypted_key?: string;
+          iv?: string;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
