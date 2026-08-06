@@ -21,7 +21,9 @@
  * covered.
  */
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import type { MusicTrack } from "@music-ai/engine";
+import type { TasteProfile } from "@/lib/taste/profile";
 import { usePlayer } from "@/lib/providers/player-youtube";
 
 export default function DashboardPage() {
@@ -167,6 +169,8 @@ export default function DashboardPage() {
         )}
       </section>
 
+      <TasteSummaryCard />
+
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">
           Discovery shelf
@@ -218,5 +222,89 @@ export default function DashboardPage() {
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * Compact taste summary — top-3 artists + top-3 tags, links to /taste for the
+ * full surface. Best-effort: on any error or empty profile it renders nothing
+ * (the dashboard's job is the shelf, not taste). Kept inline since it shares
+ * the page's fetch/error idiom; a separate file would just re-import the same
+ * TasteProfile type.
+ */
+function TasteSummaryCard() {
+  const [profile, setProfile] = useState<TasteProfile | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/taste");
+        if (!res.ok) return;
+        const data = (await res.json()) as TasteProfile;
+        if (!cancelled) setProfile(data);
+      } catch {
+        /* best-effort — silent */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Nothing to show yet (loading, error, or no history) — don't take the space.
+  if (
+    !profile ||
+    (profile.topArtists.length === 0 && profile.topTags.length === 0)
+  ) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-lg border border-black/10 p-4 dark:border-white/15">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide opacity-70">
+          Your taste
+        </h2>
+        <Link
+          href="/taste"
+          className="text-xs opacity-60 hover:opacity-100"
+        >
+          See more →
+        </Link>
+      </div>
+      <div className="flex flex-col gap-3 text-sm">
+        {profile.topArtists.length > 0 && (
+          <div>
+            <div className="mb-1 text-xs opacity-60">Top artists</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.topArtists.slice(0, 3).map((a) => (
+                <span
+                  key={a.artist}
+                  className="rounded-full border border-black/10 bg-foreground/5 px-2.5 py-0.5 text-xs dark:border-white/15"
+                >
+                  {a.artist}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {profile.topTags.length > 0 && (
+          <div>
+            <div className="mb-1 text-xs opacity-60">Top tags</div>
+            <div className="flex flex-wrap gap-1.5">
+              {profile.topTags.slice(0, 3).map((t) => (
+                <span
+                  key={t.tag}
+                  className="rounded-full border border-black/10 bg-foreground/5 px-2.5 py-0.5 text-xs dark:border-white/15"
+                >
+                  {t.tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

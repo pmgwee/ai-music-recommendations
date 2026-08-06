@@ -26,6 +26,7 @@ type NavItem = { href: string; label: string };
 
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/taste", label: "Taste" },
   { href: "/settings", label: "Settings" },
 ];
 
