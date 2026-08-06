@@ -348,6 +348,42 @@ export async function fetchArtistSongs(artistId: string, limit = 10): Promise<Mu
   }
 }
 
+/**
+ * Anonymous YouTube Music search. SP-5's vibe surface uses this to ground a
+ * free-text seed name (or a synthesised tag query) to real, playable tracks
+ * — the LLM is never allowed to emit a free-form id (see `vibe.ts`).
+ *
+ * Uses the `song` filter so artist/album/video cards never pollute the results:
+ * the vibe seeder wants a concrete track to feed `fetchRadio`, and only songs
+ * carry the 11-char videoIds the rest of the engine keys on. The InnerTube
+ * `Search` response is a heterogeneous set of shelves; filtered search collapses
+ * to a single song shelf, but both shapes are walked defensively — one
+ * unexpected response shape must never take down a vibe build.
+ *
+ * Like every other source here: signed-out, defensive, returns `[]` on failure.
+ */
+export async function searchTracks(query: string, limit = 10): Promise<MusicTrack[]> {
+  const trimmed = query?.trim();
+  if (!trimmed) return [];
+  try {
+    const yt = await getClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: any = await yt.music.search(trimmed, { type: "song" });
+    // Filtered search returns `contents: [MusicShelf]` whose items are
+    // MusicResponsiveListItem songs. The `songs` getter exposes the same shelf
+    // on unfiltered queries — handle both so a future filter change is a
+    // no-op. Items may be wrapped under `.contents` either way.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const shelf: any = result?.songs ?? result?.contents?.[0];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items: any[] = shelf?.contents ?? (Array.isArray(result?.contents) ? result.contents : []);
+    return tracksFrom(items).slice(0, Math.max(0, limit));
+  } catch (err) {
+    console.error("[music/sources] search failed:", trimmed, (err as Error)?.message ?? err);
+    return [];
+  }
+}
+
 // ---------------------------------------------------------------------------
 // CandidateSource seam (spec §8)
 // ---------------------------------------------------------------------------
@@ -366,6 +402,7 @@ export function createYoutubeCandidateSource(): CandidateSource {
     fetchArtistSongs,
     fetchPlaylistTracks,
     extendRadio,
+    searchTracks,
   };
 }
 

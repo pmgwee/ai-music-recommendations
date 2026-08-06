@@ -58,6 +58,7 @@ describe("source-neutral track model", () => {
       fetchArtistSongs: async () => [],
       fetchPlaylistTracks: async () => [],
       extendRadio: async () => null,
+      searchTracks: async () => [],
     };
 
     // (a) does not throw — and returns a (possibly empty) slate, never throws.

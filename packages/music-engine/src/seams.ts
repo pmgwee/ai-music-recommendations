@@ -70,4 +70,15 @@ export interface CandidateSource {
   fetchArtistSongs(channelId: string): Promise<MusicTrack[]>;
   fetchPlaylistTracks(playlistId: string): Promise<MusicTrack[]>;
   extendRadio(continuation: string): Promise<RadioQueue | null>;
+  /**
+   * Anonymous YouTube Music search — grounds a free-text query (a vibe seed
+   * name, or a synthesised tag query) to real, playable tracks. SP-5's vibe
+   * surface uses this to resolve the LLM's `seedNames[0]` to a concrete
+   * `trackId` before `buildRadio` takes over; the LLM is never allowed to emit
+   * a free-form id (see `vibe.ts`). Returns at most `limit` tracks (default 10).
+   *
+   * Like the other sources, this is signed-out InnerTube — no credential,
+   * nothing to expire.
+   */
+  searchTracks(query: string, limit?: number): Promise<MusicTrack[]>;
 }

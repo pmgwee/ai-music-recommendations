@@ -37,6 +37,7 @@ const mockSource: CandidateSource = {
     tracks: [{ trackId: "yt:r2", sources: { youtube: "r2" }, title: "r2", artist: "b", thumbnail: null }],
     continuation: null,
   }),
+  searchTracks: async () => [],
 };
 
 const history: HistoryEntry[] = [{
