@@ -28,6 +28,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/taste", label: "Taste" },
   { href: "/vibe", label: "Vibe" },
+  { href: "/library", label: "Library" },
   { href: "/settings", label: "Settings" },
 ];
 
