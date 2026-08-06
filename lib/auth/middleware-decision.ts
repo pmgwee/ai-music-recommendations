@@ -30,7 +30,7 @@ export interface DecideArgs {
   loginPath?: string;
 }
 
-const DEFAULT_PROTECTED_PREFIXES = ["/dashboard"];
+const DEFAULT_PROTECTED_PREFIXES = ["/dashboard", "/settings"];
 const CALLBACK_PATH = "/auth/callback";
 const LOGIN_PATH = "/login";
 

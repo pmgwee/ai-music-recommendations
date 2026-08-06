@@ -9,11 +9,12 @@ const supabaseKey = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) as string;
 
 /**
- * Routes that require an authenticated session. Today this is the dashboard;
- * as the `(app)` group grows, list every URL prefix here. (Route-group folders
- * like `(app)` don't appear in the URL, so this list is by real path.)
+ * Routes that require an authenticated session. Today these are the `(app)`
+ * surfaces — dashboard + settings. As the `(app)` group grows, list every URL
+ * prefix here. (Route-group folders like `(app)` don't appear in the URL, so
+ * this list is by real path.)
  */
-const PROTECTED_PREFIXES = ["/dashboard"];
+const PROTECTED_PREFIXES = ["/dashboard", "/settings"];
 
 const isProduction = process.env.NODE_ENV === "production";
 

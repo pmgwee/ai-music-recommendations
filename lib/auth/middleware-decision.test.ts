@@ -54,6 +54,28 @@ describe("decideAuthResponse", () => {
     }
   });
 
+  it("redirects an unauthenticated /settings visit to /login with next=/settings", () => {
+    const d = decideAuthResponse({
+      hasUser: false,
+      pathname: "/settings",
+      searchParams: sp(""),
+    });
+    expect(d.action).toBe("redirect");
+    if (d.action === "redirect") {
+      expect(d.target.pathname).toBe("/login");
+      expect(d.target.searchParams).toEqual({ next: "/settings" });
+    }
+  });
+
+  it("passes /settings through when a session exists", () => {
+    const d = decideAuthResponse({
+      hasUser: true,
+      pathname: "/settings",
+      searchParams: sp(""),
+    });
+    expect(d.action).toBe("pass");
+  });
+
   it("does not hijack ?code= when the user is already authenticated", () => {
     const d = decideAuthResponse({
       hasUser: true,

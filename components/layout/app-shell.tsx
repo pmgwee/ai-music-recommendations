@@ -6,9 +6,8 @@
  * `components/layout/app-shell.tsx` shape, stripped to the SP-1 surface
  * (Dashboard, Settings) with no external icon dependency (inline SVGs keep the
  * public bundle small and avoid a `lucide-react` dep this project doesn't
- * have). Sign-out calls `supabase.auth.signOut()` then routes to `/login` —
- * the auth cookies are cleared by the client SDK, so the next request to a
- * protected route is bounced by the middleware as intended.
+ * have). Sign-out is the shared `components/auth/sign-out-button.tsx` so the
+ * settings page reuses the exact same logic.
  *
  * The shell is a client component because the nav links read `usePathname()`
  * for the active state and the sign-out button is a client-side action. The
@@ -16,9 +15,8 @@
  */
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { usePathname } from "next/navigation";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 export interface AppUser {
   email: string | null;
@@ -124,35 +122,6 @@ export function AppShell({
 /** A path is active when it matches the nav href or a route beneath it. */
 function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function SignOutButton() {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-
-  const signOut = async () => {
-    setBusy(true);
-    try {
-      const supabase = createSupabaseBrowserClient();
-      await supabase.auth.signOut();
-    } catch {
-      // Even if signOut throws (network), route to /login — the middleware
-      // will re-validate and keep the user out of protected routes.
-    }
-    router.replace("/login");
-    router.refresh();
-  };
-
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={() => void signOut()}
-      className="rounded-md border border-black/10 px-3 py-1.5 text-sm font-medium hover:bg-black/5 disabled:opacity-50 dark:border-white/15 dark:hover:bg-white/10"
-    >
-      {busy ? "Signing out…" : "Sign out"}
-    </button>
-  );
 }
 
 function MusicMark({ className }: { className?: string }) {
