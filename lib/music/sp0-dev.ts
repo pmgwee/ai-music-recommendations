@@ -68,6 +68,6 @@ export function resolveSp0DevContext(): Sp0DevContext | NextResponse {
   }
 
   const admin = createSupabaseAdminClient();
-  const trackStore = createSupabaseTrackStore(admin, devUserId);
+  const trackStore = createSupabaseTrackStore(admin);
   return { devUserId, trackStore };
 }

@@ -48,6 +48,7 @@ const history: HistoryEntry[] = [{
   lastPlayedAt: new Date().toISOString(),
   skipCount: 0,
   completeCount: 1,
+  sources: { youtube: "seed" },
 }];
 
 describe("buildShelf", () => {

@@ -59,7 +59,7 @@ export interface TagStore {
 export interface TrackInput {
   trackId: string;
   title: string;
-  channel: string;
+  artist: string;
 }
 
 /** Convert a list of tag strings into a sparse vector (binary membership). */
@@ -95,7 +95,7 @@ async function tagBatch(batch: TrackInput[], llm: LlmProvider): Promise<Map<stri
   const out = new Map<string, string[]>();
   if (!llm.isConfigured() || batch.length === 0) return out;
 
-  const lines = batch.map((t, i) => `${i + 1}. ${t.title} — ${t.channel} (id:${t.trackId})`).join("\n");
+  const lines = batch.map((t, i) => `${i + 1}. ${t.title} — ${t.artist} (id:${t.trackId})`).join("\n");
   const system =
     "You are a music metadata tagger. For each track, choose 1–4 tags that best " +
     "describe it, using ONLY tags from the fixed vocabulary below. Do not invent " +

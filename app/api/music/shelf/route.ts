@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import {
   buildShelf,
   createYoutubeCandidateSource,
-  type TagStore,
 } from "@music-ai/engine";
 import { createGlmLlm } from "@/lib/providers/llm-glm";
+import { toNarrowTagStore } from "@/lib/providers/tag-store-adapter";
 import { resolveSp0DevContext } from "@/lib/music/sp0-dev";
 
 /**
@@ -29,30 +29,12 @@ export async function GET() {
     const llm = createGlmLlm();
 
     // Bridge the broad TrackStore → the narrow TagStore `buildShelf` consumes.
-    // The narrow seam (packages/music-engine/src/tags.ts) is get(ids) → Map and
-    // put(entries); the broad store exposes per-track getTags/setTags. We fan
-    // the narrow get out to per-track reads and fold put down to per-track
-    // writes. See the brief's "Bridge the broad → narrow tagStore" decision.
-    const narrowTagStore: TagStore = {
-      get: async (ids) => {
-        const out = new Map<string, string[]>();
-        await Promise.all(
-          ids.map(async (id) => {
-            const tags = await broad.getTags(id);
-            if (tags && tags.length > 0) out.set(id, tags);
-          }),
-        );
-        return out;
-      },
-      put: async (entries) => {
-        for (const entry of entries) await broad.setTags(entry.trackId, entry.tags);
-      },
-    };
+    const tagStore = toNarrowTagStore(broad);
 
     const slate = await buildShelf({
       history,
       candidateSource,
-      tagStore: narrowTagStore,
+      tagStore,
       llm,
       options: { likes },
     });

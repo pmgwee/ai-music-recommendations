@@ -121,6 +121,11 @@ function mergeLikesIntoHistory(history: HistoryEntry[], likes: LikedTrack[]): Hi
       lastPlayedAt: like.likedAt,
       skipCount: 0,
       completeCount: 0,
+      // A liked-but-never-played track has no known provider id in SP-0 (a like
+      // on a shelf row is a taste signal, not a playback record). The engine
+      // never dereferences this; if such a track becomes the opener, resolution
+      // is deferred to the app layer / SP-3's resolver.
+      sources: {},
     });
   }
   return [...history, ...extra];
@@ -175,6 +180,9 @@ export async function buildShelf(args: BuildShelfArgs): Promise<MusicTrack[]> {
       lastPlayedAt: new Date(now).toISOString(),
       skipCount: 0,
       completeCount: 0,
+      // Cold-start tracks come from the imported library (MusicTrack[]) which
+      // already carry their provider sources — forward them verbatim.
+      sources: track.sources,
     }));
   }
 
@@ -236,17 +244,16 @@ export async function buildShelf(args: BuildShelfArgs): Promise<MusicTrack[]> {
   if (scored.length === 0) return [];
 
   // Position-aware: open on the track the listener played most recently, so the
-  // shelf starts on something trusted before it asks them to explore.
+  // shelf starts on something trusted before it asks them to explore. The engine
+  // is source-neutral: it forwards the entry's `sources` verbatim rather than
+  // fabricating a YouTube id — provider resolution belongs to the app/SP-3.
   const opener = history[0]
     ? {
         trackId: history[0].trackId,
         title: history[0].title,
         artist: history[0].artist,
         thumbnail: history[0].thumbnail,
-        // The opener auto-plays first; it must resolve a YouTube id. Derive it
-        // from the `yt:`-prefixed trackId — the same convention `sources.ts`
-        // uses when seeding candidates from radio/related queues.
-        sources: { youtube: history[0].trackId.replace(/^yt:/, "") },
+        sources: history[0].sources,
         source: "local" as const,
       }
     : null;
@@ -261,7 +268,7 @@ export async function buildShelf(args: BuildShelfArgs): Promise<MusicTrack[]> {
   const tagInputs: TrackInput[] = slate.map((c) => ({
     trackId: c.track.trackId,
     title: c.track.title,
-    channel: c.track.artist,
+    artist: c.track.artist,
   }));
   const tagVectors = await ensureTagVectors(tagInputs, tagStore, llm);
   return sequence(slate, 0, { transitionBias, tagVectors }).map((candidate) => candidate.track);
@@ -341,7 +348,7 @@ export async function buildRadio(
   const tagInputs: TrackInput[] = slate.map((c) => ({
     trackId: c.track.trackId,
     title: c.track.title,
-    channel: c.track.artist,
+    artist: c.track.artist,
   }));
   const tagVectors = await ensureTagVectors(tagInputs, tagStore, llm);
   const ordered = sequence(slate, 0, { transitionBias, tagVectors });

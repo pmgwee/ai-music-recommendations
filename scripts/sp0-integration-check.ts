@@ -14,10 +14,10 @@
 import {
   buildShelf,
   createYoutubeCandidateSource,
-  type TagStore,
 } from "@music-ai/engine";
 import { createSupabaseAdminClient } from "../lib/supabase/admin";
 import { createSupabaseTrackStore } from "../lib/providers/track-store-supabase";
+import { toNarrowTagStore } from "../lib/providers/tag-store-adapter";
 import { createGlmLlm } from "../lib/providers/llm-glm";
 
 const DEV_EMAIL = "sp0-dev@local";
@@ -99,7 +99,7 @@ async function main(): Promise<void> {
   //    - CandidateSource: real anonymous InnerTube.
   //    - LlmProvider: real GLM if ZAI_API_KEY set, else isConfigured()=false
   //      (tag prior skipped, co-occurrence only — still produces a real slate).
-  const trackStore = createSupabaseTrackStore(admin, devUserId);
+  const trackStore = createSupabaseTrackStore(admin);
   const candidateSource = createYoutubeCandidateSource();
   const llm = createGlmLlm();
   console.log(`[sp0-check] GLM tag prior ${llm.isConfigured() ? "ENABLED" : "DISABLED (co-occurrence only)"}`);
@@ -116,28 +116,14 @@ async function main(): Promise<void> {
   console.log(`[sp0-check] seed present in history: ${seedPresent}`);
 
   // Bridge broad TrackStore → narrow TagStore (get/put) per tags.ts.
-  const narrowTagStore: TagStore = {
-    get: async (ids) => {
-      const out = new Map<string, string[]>();
-      await Promise.all(
-        ids.map(async (id) => {
-          const tags = await trackStore.getTags(id);
-          if (tags && tags.length > 0) out.set(id, tags);
-        }),
-      );
-      return out;
-    },
-    put: async (entries) => {
-      for (const entry of entries) await trackStore.setTags(entry.trackId, entry.tags);
-    },
-  };
+  const tagStore = toNarrowTagStore(trackStore);
 
   console.log("[sp0-check] building shelf through four real seams...");
   const started = Date.now();
   const slate = await buildShelf({
     history,
     candidateSource,
-    tagStore: narrowTagStore,
+    tagStore,
     llm,
   });
   const elapsed = ((Date.now() - started) / 1000).toFixed(1);

@@ -27,6 +27,7 @@ import type {
   HistoryEntry,
   LikedTrack,
   Suppressions,
+  TrackSources,
 } from "@music-ai/engine";
 import type { Database } from "../supabase/types";
 import { createSupabaseAdminClient, isAdminConfigured } from "../supabase/admin";
@@ -38,14 +39,9 @@ const HISTORY_LIMIT = 60;
 
 /**
  * @param serverClient Cookie-bound server client (RLS-enforced).
- * @param _userId The user this store is bound to (per the brief's factory
- *   signature). The returned `TrackStore` methods each take their own `userId`
- *   per the interface contract, so this binding is retained for ergonomic
- *   callers but not required by the current implementation.
  */
 export function createSupabaseTrackStore(
   serverClient: ServerClient,
-  _userId: string,
 ): TrackStore {
   return {
     // -------------------------------------------------------------------------
@@ -73,6 +69,12 @@ export function createSupabaseTrackStore(
         lastPlayedAt: row.last_played_at,
         skipCount: row.skip_count ?? 0,
         completeCount: row.complete_count ?? 0,
+        // SP-0 stores `yt:`-prefixed trackIds. Derive the youtube provider id
+        // app-side (the engine stays source-neutral — it never assumes a
+        // provider). A future non-youtube trackId yields `{}`.
+        sources: row.track_id.startsWith("yt:")
+          ? { youtube: row.track_id.slice(3) }
+          : {},
       }));
     },
 

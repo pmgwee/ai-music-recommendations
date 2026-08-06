@@ -57,4 +57,12 @@ export interface HistoryEntry {
   lastPlayedAt: string;
   skipCount: number;
   completeCount: number;
+  /**
+   * Per-provider ids for this track. The engine is source-neutral — it never
+   * dereferences `sources.youtube` itself; it only forwards `sources` verbatim
+   * (e.g. the shelf opener auto-plays first and must resolve a provider id, but
+   * which provider that is belongs to the app layer, not the engine). For rows
+   * synthesised from likes with no known provider id, use `{}`.
+   */
+  sources: TrackSources;
 }

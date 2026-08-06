@@ -205,7 +205,7 @@ describe("createSupabaseTrackStore", () => {
       artist: "Rick Astley",
       thumbnail: "https://img.example/rick.jpg",
     };
-    const ts = createSupabaseTrackStore(serverClient, "user-1");
+    const ts = createSupabaseTrackStore(serverClient);
 
     await ts.recordPlay("user-1", track);
 
@@ -231,6 +231,7 @@ describe("createSupabaseTrackStore", () => {
       lastPlayedAt: expect.any(String),
       skipCount: 0,
       completeCount: 0,
+      sources: { youtube: "dQw4w9WgXcQ" },
     });
   });
 
@@ -242,7 +243,7 @@ describe("createSupabaseTrackStore", () => {
       artist: "A",
       thumbnail: null,
     };
-    const ts = createSupabaseTrackStore(serverClient, "user-1");
+    const ts = createSupabaseTrackStore(serverClient);
     await ts.recordPlay("user-1", track);
     await ts.recordSignal("user-1", "yt:abc", "skip");
 
@@ -263,7 +264,7 @@ describe("createSupabaseTrackStore", () => {
       artist: "A",
       thumbnail: null,
     };
-    const ts = createSupabaseTrackStore(serverClient, "user-1");
+    const ts = createSupabaseTrackStore(serverClient);
     await ts.recordPlay("user-1", track);
     await ts.recordPlay("user-1", track);
 
@@ -273,7 +274,7 @@ describe("createSupabaseTrackStore", () => {
   });
 
   it("setTags writes via admin client; getTags reads via server client", async () => {
-    const ts = createSupabaseTrackStore(serverClient, "user-1");
+    const ts = createSupabaseTrackStore(serverClient);
     await ts.setTags("yt:xyz", ["pop", "80s"]);
     expect(store.upserts.some((u) => u.table === "music_track_tags")).toBe(true);
 
@@ -282,14 +283,14 @@ describe("createSupabaseTrackStore", () => {
   });
 
   it("getTags returns null when no row exists", async () => {
-    const ts = createSupabaseTrackStore(serverClient, "user-1");
+    const ts = createSupabaseTrackStore(serverClient);
     const tags = await ts.getTags("yt:missing");
     expect(tags).toBeNull();
   });
 
   it("loadHistory is defensive — returns [] on error (widget must not 500)", async () => {
     store.forceError = true;
-    const ts = createSupabaseTrackStore(serverClient, "user-1");
+    const ts = createSupabaseTrackStore(serverClient);
     const history = await ts.loadHistory("user-1");
     expect(history).toEqual([]);
   });
@@ -299,7 +300,7 @@ describe("createSupabaseTrackStore", () => {
       { user_id: "user-1", from_track_id: "yt:a", to_track_id: "yt:b", skips: 0, completions: 9, updated_at: "" },
       { user_id: "user-1", from_track_id: "yt:a", to_track_id: "yt:c", skips: 5, completions: 0, updated_at: "" },
     ];
-    const ts = createSupabaseTrackStore(serverClient, "user-1");
+    const ts = createSupabaseTrackStore(serverClient);
     const bias = await ts.loadTransitionBias("user-1");
     // 9 completions, 0 skips → strong positive; 5 skips, 0 completions → strong negative.
     expect(bias.get("yt:a>yt:b")!).toBeGreaterThan(0);
