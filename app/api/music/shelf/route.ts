@@ -9,6 +9,8 @@ import { requireUser } from "@/lib/auth/require-user";
 import { createByokLlm, NullLlm } from "@/lib/providers/llm-byok";
 import { toNarrowTagStore } from "@/lib/providers/tag-store-adapter";
 import { rateLimit } from "@/lib/rate-limit";
+import { buildTasteProfile } from "@/lib/taste/profile";
+import { diversityJudge } from "@/lib/taste/judge";
 
 /**
  * Discovery shelf, wired end-to-end through the four injected seams: broad
@@ -64,6 +66,26 @@ export async function GET() {
       llm,
       options: { likes },
     });
+
+    // SP-4 D3 — top-N diversity judge (gated post-filter, ADR-0007 §"Deferred").
+    // Runs ONLY when a real BYOK LLM is configured (NullLlm.isConfigured() is
+    // false) AND the slate has at least 10 tracks. The judge is bounded (≤10
+    // in, ≤2 drops, 1 LLM call) and defensive (any failure → empty set, never
+    // throws). The dropped tracks fall back into the unheard pool for next
+    // time. profile build or judge throw → slate unchanged.
+    if (llm !== NullLlm && llm.isConfigured() && slate.length >= 10) {
+      try {
+        const profile = await buildTasteProfile(trackStore, userId);
+        const dropIds = await diversityJudge(llm, slate.slice(0, 10), profile);
+        if (dropIds.size > 0) {
+          const filtered = slate.filter((t) => !dropIds.has(t.trackId));
+          return NextResponse.json({ tracks: filtered });
+        }
+      } catch (err) {
+        // Defensive: judge is supposed to never throw, but belt-and-braces.
+        console.error("[api/music/shelf] diversityJudge failed:", err);
+      }
+    }
 
     return NextResponse.json({ tracks: slate });
   } catch (err) {
