@@ -68,7 +68,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center text-center">
           <h1 className="text-xl font-semibold tracking-tight">Welcome back</h1>
           <p className="mt-1 text-sm opacity-70">
-            Sign in to your AI Music Recommendations account.
+            Sign in to your AI True Music account.
           </p>
         </div>
 

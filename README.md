@@ -1,4 +1,4 @@
-# ai-music-recommendations
+# AI True Music
 
 A source-neutral music recommender — a two-stage candidate-generation +
 ranking/sequencing engine, ported from the subscription-agent in-app music

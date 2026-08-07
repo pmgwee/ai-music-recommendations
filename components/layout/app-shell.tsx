@@ -51,7 +51,7 @@ export function AppShell({
           </div>
           <div className="leading-tight">
             <div className="text-sm font-semibold tracking-tight">
-              AI Music
+              AI True Music
             </div>
             <div className="text-xs opacity-60">Recommendations</div>
           </div>
@@ -82,7 +82,7 @@ export function AppShell({
       <div className="lg:pl-[240px]">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-black/10 bg-background/80 px-4 backdrop-blur dark:border-white/15 sm:px-6">
           <span className="text-sm font-semibold tracking-tight lg:hidden">
-            {NAV.find((n) => isActive(pathname, n.href))?.label ?? "AI Music"}
+            {NAV.find((n) => isActive(pathname, n.href))?.label ?? "AI True Music"}
           </span>
           <div className="ml-auto flex items-center gap-3">
             {user.email ? (

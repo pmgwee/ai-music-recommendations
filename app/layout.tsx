@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Music Recommendations",
+  title: "AI True Music",
   description: "Personalized music discovery.",
 };
 

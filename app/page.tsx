@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /**
- * Public landing page — the honest positioning for AI Music Recommendations.
+ * Public landing page — the honest positioning for AI True Music.
  *
  * OUTSIDE the `(app)` route group, so the player provider, the app shell, and
  * the auth gate are NOT mounted here (no audio iframe, no shelf fetch that
@@ -35,7 +35,7 @@ export default async function Home() {
           <MusicMark className="size-4" />
         </div>
         <span className="text-sm font-semibold tracking-tight">
-          AI Music Recommendations
+          AI True Music
         </span>
       </div>
 
@@ -114,7 +114,7 @@ export default async function Home() {
           </p>
         </div>
         <p className="mt-6 text-center text-xs opacity-50">
-          AI Music Recommendations · a transparent, learning recommender
+          AI True Music · a transparent, learning recommender
         </p>
       </footer>
     </main>
